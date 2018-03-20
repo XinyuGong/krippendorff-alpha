@@ -77,11 +77,12 @@ def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, conver
                 its.append(convert_items(g))
 
 
-    units = dict((it, d) for it, d in units.items() if len(d) > 1)  # units with pairable values
+    units = dict((it, d) for it, d in units.items() if len(d) > 1)  # units with pairable values (delete all units that have ratings less than 1)
     n = sum(len(pv) for pv in units.values())  # number of pairable values
     
     if n == 0:
-        raise ValueError("No items to compare.")
+        # raise ValueError("No pairable unit's ratings.")
+        return -99
     
     np_metric = (np is not None) and ((metric in (interval_metric, nominal_metric, ratio_metric)) or force_vecmath)
     
@@ -123,6 +124,13 @@ if __name__ == '__main__':
 
     missing = '*' # indicator for missing values
     array = [d.split() for d in data]  # convert to 2D list of string items
-    
+    print("nominal metric: %.3f" % krippendorff_alpha(array, nominal_metric, missing_items=missing))
+    print("interval metric: %.3f" % krippendorff_alpha(array, interval_metric, missing_items=missing))
+    #print(array)
+    array = []
+    array.append({'unit6':3, 'unit7':4, 'unit8':1, 'unit9': 2, 'unit10': 1, 'unit11': 1, 'unit12': 3, 'unit13': 3, 'unit15': 3})  # coder 1
+    array.append({'unit1':1, 'unit3':2, 'unit4': 1, 'unit5': 3, 'unit6': 3, 'unit7': 4, 'unit8': 3})   # coder 2
+    array.append({'unit3':2, 'unit4':1, 'unit5': 3, 'unit6':4, 'unit7':4, 'unit9': 2, 'unit10': 1, 'unit11':1, 'unit12':3, 'unit13':3, 'unit15':4}) # coder 3
+    missing = None
     print("nominal metric: %.3f" % krippendorff_alpha(array, nominal_metric, missing_items=missing))
     print("interval metric: %.3f" % krippendorff_alpha(array, interval_metric, missing_items=missing))
