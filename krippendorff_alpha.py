@@ -27,6 +27,8 @@ def ratio_metric(a, b):
     res = list()
     for i in a:
         res.append(((i-b)/(i+b))**2 if i > 0 or b > 0 else 0)
+        if b < 0:
+            print('Alert: Negtive value detected.**********************')
     return res
 
 
@@ -135,5 +137,5 @@ if __name__ == '__main__':
     array.append({'unit1':1, 'unit3':2, 'unit4': 1, 'unit5': 3, 'unit6': 3, 'unit7': 4, 'unit8': 3})   # coder 2
     array.append({'unit3':2, 'unit4':1, 'unit5': 3, 'unit6':4, 'unit7':4, 'unit9': 2, 'unit10': 1, 'unit11':1, 'unit12':3, 'unit13':3, 'unit15':4}) # coder 3
     missing = None
-    print("nominal metric: %.3f" % krippendorff_alpha(array, nominal_metric, missing_items=missing))
+    print("nominal metric: %.3f" % krippendorff_alpha(array, ratio_metric, missing_items=missing))
     print("interval metric: %.3f" % krippendorff_alpha(array, interval_metric, missing_items=missing))

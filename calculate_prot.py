@@ -12,7 +12,7 @@ for tc_id, group in data.items():
     if(len(array) < 3):
         print('Too few answers, give up this criterion.')
         continue
-    irr = K.krippendorff_alpha(data = array, metric = K.ratio_metric) # interval_metric(default), nominal_metric, ratio_metric
+    irr = K.krippendorff_alpha(data = array, metric = K.interval_metric) # interval_metric(default), nominal_metric, ratio_metric
     if irr == -99:
         print('No pairable ratings of any same unit. Give up this criterion.')
         continue

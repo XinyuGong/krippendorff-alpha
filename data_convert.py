@@ -20,8 +20,8 @@ def convert(data, root, site):
             s = tuple.find(score).text
         else:
             s = tuple.find(rank).text
-        if len(s) == 4:
-            print(s)
+        if int(s) < 0:
+            print('tc_id:', key, 'coder:', coder, 'unit:', unit, '* Negative score found. Drop this sample.')
             continue
         if key in data:
             answers = data.get(key)
