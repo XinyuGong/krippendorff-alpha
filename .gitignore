@@ -90,3 +90,6 @@ ENV/
 
 # XML data
 xml/
+
+# VS Code
+.vscode/
