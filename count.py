@@ -1,6 +1,6 @@
 import SL
 
-irrs = SL.load_obj('irr_more')
+irrs = SL.load_obj('irr')
 b0 = 0
 b2 = 0
 b4 = 0
@@ -8,8 +8,7 @@ b6 = 0
 b8 = 0
 b10 = 0
 a10 = 0
-for id, tuple in irrs.items():
-    irr = float(tuple[1])
+for id, irr in irrs.items():
     if irr < 0:
         b0 += 1
     elif irr < 0.2:

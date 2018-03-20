@@ -24,7 +24,10 @@ def interval_metric(a, b):
 
 
 def ratio_metric(a, b):
-    return ((a-b)/(a+b))**2
+    res = list()
+    for i in a:
+        res.append(((i-b)/(i+b))**2 if i > 0 or b > 0 else 0)
+    return res
 
 
 def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, convert_items=float, missing_items=None):

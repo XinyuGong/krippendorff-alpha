@@ -20,4 +20,5 @@ for tc_id, group in data.items():
         irrs.get(c_id).append(irr)
     else:
         irrs[c_id] = [irr]
+    print('is', irr)
 SL.save_obj(irrs, 'irr_prot')
