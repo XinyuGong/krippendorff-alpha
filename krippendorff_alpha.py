@@ -31,8 +31,20 @@ def ratio_metric(a, b):
             print('Alert: Negtive value detected.**********************')
     return res
 
+def ordinal_metric(a, b, v_table):
+    if a > b:
+        start = int(b)
+        end = int(a)
+    else:
+        start = int(a)
+        end = int(b)
+    x = 0
+    for i in range(start, end + 1):
+        x += v_table[i]
+    return (x - (v_table[a] + v_table[b]) / 2) ** 2
 
-def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, convert_items=float, missing_items=None):
+
+def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, convert_items=float, missing_items=None, min_ord = 0, ord_quant = 0):
     '''
     Calculate Krippendorff's alpha (inter-rater reliability):
     
@@ -91,9 +103,62 @@ def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, conver
     
     np_metric = (np is not None) and ((metric in (interval_metric, nominal_metric, ratio_metric)) or force_vecmath)
     
+    if metric == ordinal_metric:
+        statical = []
+        for i in range(ord_quant):
+            statical.append([0]*ord_quant)
+        '''
+        closed = {}
+        for i in range(len(data)):
+            for unit, score in data[i].items():
+                if unit in closed: continue
+                l = []
+                d = {}
+                d[score] = 0
+                l.append([score, 1])
+                for j in range(i + 1, len(data)):
+                    if unit in data[j]:
+                        score2 = data[j][unit]
+                        if score2 in d:
+                            l[d[score2]][1] += 1
+                        else:
+                            l.append([score2, 1])
+                            d[score2]=len(l) - 1
+                for j in range(len(l)):
+                    if l[j][1]>1:
+                        statical[l[j][0]-min_ord][l[j][0]-min_ord]+=(l[j][1])*(l[j][1]-1)/(l[j][1]-1)
+                    for k in range(j+1, len(l)):
+                        row=l[j][0]-min_ord
+                        col=l[k][0]-min_ord
+                        statical[row][col]+=l[j][1]*l[k][1]/(l[j][1]+l[k][1]-1)
+                        statical[col][row]+=l[j][1]*l[k][1]/(l[j][1]+l[k][1]-1)
+                closed[unit] = 0
+        '''
+        for grades in units.values():
+            l=[]
+            d={}
+            for grade in grades:
+                if grade in d:
+                    l[d[grade]][1]+=1
+                else:
+                    d[grade]=len(l)
+                    l.append([grade, 1])
+            for i in range(len(l)):
+                statical[int(l[i][0])-min_ord][int(l[i][0])-min_ord]+=(l[i][1])*(l[i][1]-1)/(len(grades)-1)
+                for j in range(i+1, len(l)):
+                    row = int(l[i][0])-min_ord
+                    col = int(l[j][0])-min_ord
+                    statical[row][col]+=l[i][1]*l[j][1]/(len(grades)-1)
+                    statical[col][row]+=l[i][1]*l[j][1]/(len(grades)-1)
+        v_table = {}
+        for row in range(len(statical)):
+            v_table[row + min_ord] = sum(statical[row])
+
     Do = 0.
     for grades in units.values():
-        if np_metric:
+        if metric == ordinal_metric:
+            Du = sum(metric(gi, gj, v_table) for gi in grades for gj in grades)
+        elif np_metric:
             gr = np.asarray(grades)
             Du = sum(np.sum(metric(gr, gri)) for gri in gr)
         else:
@@ -106,7 +171,10 @@ def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, conver
 
     De = 0.
     for g1 in units.values():
-        if np_metric:
+        if metric == ordinal_metric:
+            for g2 in units.values():
+                De += sum(metric(gi, gj, v_table) for gi in g1 for gj in g2)
+        elif np_metric:
             d1 = np.asarray(g1)
             for g2 in units.values():
                 De += sum(np.sum(metric(d1, gj)) for gj in g2)
@@ -129,13 +197,13 @@ if __name__ == '__main__':
 
     missing = '*' # indicator for missing values
     array = [d.split() for d in data]  # convert to 2D list of string items
-    print("nominal metric: %.3f" % krippendorff_alpha(array, nominal_metric, missing_items=missing))
-    print("interval metric: %.3f" % krippendorff_alpha(array, interval_metric, missing_items=missing))
+    print("nominal metric: %.5f" % krippendorff_alpha(array, nominal_metric, missing_items=missing))
+    print("interval metric: %.5f" % krippendorff_alpha(array, interval_metric, missing_items=missing))
     #print(array)
     array = []
     array.append({'unit6':3, 'unit7':4, 'unit8':1, 'unit9': 2, 'unit10': 1, 'unit11': 1, 'unit12': 3, 'unit13': 3, 'unit15': 3})  # coder 1
     array.append({'unit1':1, 'unit3':2, 'unit4': 1, 'unit5': 3, 'unit6': 3, 'unit7': 4, 'unit8': 3})   # coder 2
     array.append({'unit3':2, 'unit4':1, 'unit5': 3, 'unit6':4, 'unit7':4, 'unit9': 2, 'unit10': 1, 'unit11':1, 'unit12':3, 'unit13':3, 'unit15':4}) # coder 3
     missing = None
-    print("nominal metric: %.3f" % krippendorff_alpha(array, ratio_metric, missing_items=missing))
-    print("interval metric: %.3f" % krippendorff_alpha(array, interval_metric, missing_items=missing))
+    print("ordinal metric: %.5f" % krippendorff_alpha(array, ordinal_metric, missing_items=missing, min_ord = 1, ord_quant=4))
+    print("ratio metric: %.5f" % krippendorff_alpha(array, ratio_metric, missing_items=missing))
