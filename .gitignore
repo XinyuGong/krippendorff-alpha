@@ -93,3 +93,6 @@ xml/
 
 # VS Code
 .vscode/
+
+# System file
+.DS_Store
