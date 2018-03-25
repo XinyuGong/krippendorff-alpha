@@ -15,21 +15,16 @@ except ImportError:
     np = None
 
 
-def nominal_metric(a, b):
+def nominal_metric(a, b, no_use):
     return a != b
 
 
-def interval_metric(a, b):
+def interval_metric(a, b, no_use):
     return (a-b)**2
 
 
-def ratio_metric(a, b):
-    res = list()
-    for i in a:
-        res.append(((i-b)/(i+b))**2 if i > 0 or b > 0 else 0)
-        if b < 0:
-            print('Alert: Negtive value detected.**********************')
-    return res
+def ratio_metric(a, b, no_use):
+    return ((a - b) / (a + b)) ** 2 if a > 0 or b > 0 else 0
 
 def ordinal_metric(a, b, v_table):
     if a > b:
@@ -44,7 +39,7 @@ def ordinal_metric(a, b, v_table):
     return (x - (v_table[a] + v_table[b]) / 2) ** 2
 
 
-def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, convert_items=float, missing_items=None, min_ord = 0, ord_quant = 0):
+def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, convert_items=float, missing_items=None, min_ord = 0, ord_quant = 0, weighted=False):
     '''
     Calculate Krippendorff's alpha (inter-rater reliability):
     
@@ -64,7 +59,7 @@ def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, conver
     '''
     
     # number of coders
-    m = len(data)
+    #m = len(data)
     
     # set of constants identifying missing values
     if missing_items is None:
@@ -85,103 +80,98 @@ def krippendorff_alpha(data, metric=interval_metric, force_vecmath=False, conver
             diter = enumerate(d)
             
         for it, g in diter:
-            if g not in maskitems:
+            x = g[0] if weighted else g #!
+            if x not in maskitems:
                 try:
                     its = units[it]
                 except KeyError:
                     its = []
                     units[it] = its
-                its.append(convert_items(g))
-
+                y = [convert_items(i) for i in g] if weighted else g #!
+                its.append(y)
 
     units = dict((it, d) for it, d in units.items() if len(d) > 1)  # units with pairable values (delete all units that have ratings less than 1)
-    n = sum(len(pv) for pv in units.values())  # number of pairable values
+    #n = sum(sum(g[1] for g in grades for grades in units.values())) if weighted else sum(len(pv) for pv in units.values())  #! number of pairable values
     
+    #np_metric = (np is not None) and ((metric in (interval_metric, nominal_metric, ratio_metric)) or force_vecmath)
+    
+    #if metric == ordinal_metric:
+    statical = []
+    for i in range(ord_quant):
+        statical.append([0]*ord_quant)
+    for grades in units.values():
+        l=[]
+        d={}
+        for grade0 in grades:
+            #!
+            if weighted:
+                grade=grade0[0]
+                w=grade0[1]
+            else:
+                grade=grade0
+                w=1
+            if grade in d:
+                l[d[grade]][1]+=w
+            else:
+                d[grade]=len(l)
+                l.append([grade, w])
+            #!
+        for i in range(len(l)):
+            n = sum(g[1] for g in grades) if weighted else len(grades)
+            statical[int(l[i][0])-min_ord][int(l[i][0])-min_ord]+=(l[i][1])*(l[i][1]-1)/(n-1)
+            for j in range(i+1, len(l)):
+                row = int(l[i][0])-min_ord
+                col = int(l[j][0])-min_ord
+                statical[row][col]+=l[i][1]*l[j][1]/(n-1)
+                statical[col][row]+=l[i][1]*l[j][1]/(n-1)
+    v_table = {}
+    for row in range(len(statical)):
+        v_table[row + min_ord] = sum(statical[row])
+
+    n = sum(v_table.values())
     if n == 0:
         # raise ValueError("No pairable unit's ratings.")
         return -99
-    
-    np_metric = (np is not None) and ((metric in (interval_metric, nominal_metric, ratio_metric)) or force_vecmath)
-    
-    if metric == ordinal_metric:
-        statical = []
-        for i in range(ord_quant):
-            statical.append([0]*ord_quant)
-        '''
-        closed = {}
-        for i in range(len(data)):
-            for unit, score in data[i].items():
-                if unit in closed: continue
-                l = []
-                d = {}
-                d[score] = 0
-                l.append([score, 1])
-                for j in range(i + 1, len(data)):
-                    if unit in data[j]:
-                        score2 = data[j][unit]
-                        if score2 in d:
-                            l[d[score2]][1] += 1
-                        else:
-                            l.append([score2, 1])
-                            d[score2]=len(l) - 1
-                for j in range(len(l)):
-                    if l[j][1]>1:
-                        statical[l[j][0]-min_ord][l[j][0]-min_ord]+=(l[j][1])*(l[j][1]-1)/(l[j][1]-1)
-                    for k in range(j+1, len(l)):
-                        row=l[j][0]-min_ord
-                        col=l[k][0]-min_ord
-                        statical[row][col]+=l[j][1]*l[k][1]/(l[j][1]+l[k][1]-1)
-                        statical[col][row]+=l[j][1]*l[k][1]/(l[j][1]+l[k][1]-1)
-                closed[unit] = 0
-        '''
-        for grades in units.values():
-            l=[]
-            d={}
-            for grade in grades:
-                if grade in d:
-                    l[d[grade]][1]+=1
-                else:
-                    d[grade]=len(l)
-                    l.append([grade, 1])
-            for i in range(len(l)):
-                statical[int(l[i][0])-min_ord][int(l[i][0])-min_ord]+=(l[i][1])*(l[i][1]-1)/(len(grades)-1)
-                for j in range(i+1, len(l)):
-                    row = int(l[i][0])-min_ord
-                    col = int(l[j][0])-min_ord
-                    statical[row][col]+=l[i][1]*l[j][1]/(len(grades)-1)
-                    statical[col][row]+=l[i][1]*l[j][1]/(len(grades)-1)
-        v_table = {}
-        for row in range(len(statical)):
-            v_table[row + min_ord] = sum(statical[row])
 
     Do = 0.
+    for i in range(len(statical) - 1):
+        for j in range(i, len(statical)):
+            Do += statical[i][j] * metric(i + min_ord, j + min_ord, v_table)
+    '''
     for grades in units.values():
         if metric == ordinal_metric:
-            Du = sum(metric(gi, gj, v_table) for gi in grades for gj in grades)
-        elif np_metric:
-            gr = np.asarray(grades)
-            Du = sum(np.sum(metric(gr, gri)) for gri in gr)
+            Du = sum(metric(gi, gj, v_table, weighted) for gi in grades for gj in grades)
+        #elif np_metric:
+        #    gr = np.asarray(grades)
+        #    Du = sum(np.sum(metric(gr, gri)) for gri in gr)
         else:
-            Du = sum(metric(gi, gj) for gi in grades for gj in grades)
-        Do += Du/float(len(grades)-1)
+            Du = sum(metric(gi, gj, weighted) for gi in grades for gj in grades)
+        Do += Du / float(sum(g[1] for g in grades) - 1) if weighted else Du/float(len(grades)-1) #!
     Do /= float(n)
+    '''
 
     if Do == 0:
         return 1.
 
     De = 0.
+    for i in range(len(statical) - 1):
+        for j in range(i, len(statical)):
+            De += v_table[i + min_ord] * v_table[j + min_ord] * metric(i + min_ord, j + min_ord, v_table)
+    De /= (n - 1)
+    '''
     for g1 in units.values():
         if metric == ordinal_metric:
             for g2 in units.values():
-                De += sum(metric(gi, gj, v_table) for gi in g1 for gj in g2)
-        elif np_metric:
-            d1 = np.asarray(g1)
-            for g2 in units.values():
-                De += sum(np.sum(metric(d1, gj)) for gj in g2)
+                De += sum(metric(gi, gj, v_table, weighted) for gi in g1 for gj in g2)
+        #elif np_metric:
+        #    d1 = np.asarray(g1)
+        #    for g2 in units.values():
+        #        De += sum(np.sum(metric(d1, gj)) for gj in g2)
         else:
             for g2 in units.values():
-                De += sum(metric(gi, gj) for gi in g1 for gj in g2)
+                De += sum(metric(gi, gj, weighted) for gi in g1 for gj in g2)
     De /= float(n*(n-1))
+    '''
 
     return 1.-Do/De if (Do and De) else 1.
 
@@ -197,8 +187,8 @@ if __name__ == '__main__':
 
     missing = '*' # indicator for missing values
     array = [d.split() for d in data]  # convert to 2D list of string items
-    print("nominal metric: %.5f" % krippendorff_alpha(array, nominal_metric, missing_items=missing))
-    print("interval metric: %.5f" % krippendorff_alpha(array, interval_metric, missing_items=missing))
+    print("nominal metric: %.5f" % krippendorff_alpha(array, nominal_metric, missing_items=missing, min_ord = 1, ord_quant=4))
+    print("interval metric: %.5f" % krippendorff_alpha(array, interval_metric, missing_items=missing, min_ord = 1, ord_quant=4))
     #print(array)
     array = []
     array.append({'unit6':3, 'unit7':4, 'unit8':1, 'unit9': 2, 'unit10': 1, 'unit11': 1, 'unit12': 3, 'unit13': 3, 'unit15': 3})  # coder 1
@@ -206,4 +196,4 @@ if __name__ == '__main__':
     array.append({'unit3':2, 'unit4':1, 'unit5': 3, 'unit6':4, 'unit7':4, 'unit9': 2, 'unit10': 1, 'unit11':1, 'unit12':3, 'unit13':3, 'unit15':4}) # coder 3
     missing = None
     print("ordinal metric: %.5f" % krippendorff_alpha(array, ordinal_metric, missing_items=missing, min_ord = 1, ord_quant=4))
-    print("ratio metric: %.5f" % krippendorff_alpha(array, ratio_metric, missing_items=missing))
+    print("ratio metric: %.5f" % krippendorff_alpha(array, ratio_metric, missing_items=missing, min_ord = 1, ord_quant=4))

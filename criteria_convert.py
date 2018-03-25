@@ -11,8 +11,8 @@ root = tree.getroot()
 cri = dict()
 for tuple in root:
     key = tuple.find(id).text
-    title = tuple.find(title).text
-    min_score = tuple.find(min_score).text
-    max_score = tuple.find(max_score).text
-    cri[key] = [title, int(min_score), int(max_score)]
+    text = tuple.find(title).text
+    min_s = tuple.find(min_score).text
+    max_s = tuple.find(max_score).text
+    cri[key] = [text, int(min_s), int(max_s)]
 SL.save_obj(cri, 'criteria')

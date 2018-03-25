@@ -7,7 +7,7 @@ for id, irr in irrs.items():
     criterion = criteria.get(id)
     if criterion == None:
         print('Criterion not found! ID:', id)
-        exit
-    list = [criterion, irr]
-    data[id] = list
+        exit()
+    l = [criterion[0], irr]
+    data[id] = l
 SL.save_obj(data, 'irr_more')
