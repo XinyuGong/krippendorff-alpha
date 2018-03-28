@@ -19,7 +19,7 @@ def convert(data, root, site):
         coder = tuple.find(ar_id).text
         unit = tuple.find(ae_id).text
         cmt=tuple.find(comment).text
-        w = 10 if len(cmt) >= 40 else 1
+        w = 3 if len(cmt) >= 40 else 1
         if site == ez:
             s = int(tuple.find(score).text)
         else:
